@@ -1,11 +1,15 @@
-<div align="center">
+Overview: KulfiSync is a full-stack, dark-mode real-time experience web application built for couples to connect and play together asynchronously or live during evening hours.
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Key Features:
 
-  <h1>Built with AI Studio</h2>
+Instant Room Pairing: Generate or join private 6-character invite rooms with live connection indicators and automatic reconnection handling.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+Synchronized Drawing Canvas: Real-time stroke, color, and canvas state synchronization across connected partners.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+AI Daily Couple Game: Dynamically generates 5-question mood-tuned decks ("How Well Do You Know Me?", "Would You Rather") via the Gemini API with structured JSON validation and fallback handling.
 
-</div>
+Date Menu & Shared Notes: Collaborative date-idea voting with automatic match lock-in and shared evening notes.
+
+Persistent Memories: Saves completed game scores, room metadata, and canvas snapshots in Firebase Firestore so couples can revisit past sessions.
+
+Tech Stack: React, Tailwind CSS, Node.js, WebSockets / Real-Time State Sync, Gemini API, Firebase Firestore.
