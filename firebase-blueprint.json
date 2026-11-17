@@ -1,0 +1,261 @@
+{
+  "entities": {
+    "RoomArchive": {
+      "title": "RoomArchive",
+      "description": "Persistent metadata and evening state summary for a 6-character KulfiSync date-night room.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 6,
+          "minLength": 6,
+          "pattern": "^[A-Z0-9]{6}$",
+          "description": "Unique 6-character room invite code."
+        },
+        "createdByUid": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "description": "Firebase Auth UID of the partner who created the room archive."
+        },
+        "participantUids": {
+          "type": "array",
+          "description": "Bounded list (max 2) of authenticated partner UIDs belonging to this room."
+        },
+        "partnerNames": {
+          "type": "array",
+          "description": "Bounded list (max 2) of partner display nicknames."
+        },
+        "partnerCount": {
+          "type": "integer",
+          "description": "Number of authenticated partners recorded in this room (1 or 2)."
+        },
+        "lastCraving": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Most recent evening dessert or food craving."
+        },
+        "lastSoundtrack": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Most recent room soundtrack mood."
+        },
+        "lastEnergy": {
+          "type": "integer",
+          "description": "Evening energy level from 1 to 5."
+        },
+        "snapshotCount": {
+          "type": "integer",
+          "description": "Count of saved canvas snapshots in this room."
+        },
+        "gameCount": {
+          "type": "integer",
+          "description": "Count of completed daily couple game rounds in this room."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the room archive was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the room archive was last updated."
+        }
+      },
+      "required": [
+        "code",
+        "createdByUid",
+        "participantUids",
+        "partnerNames",
+        "partnerCount",
+        "lastCraving",
+        "lastSoundtrack",
+        "lastEnergy",
+        "snapshotCount",
+        "gameCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RoomMember": {
+      "title": "RoomMember",
+      "description": "Authenticated partner membership record for a KulfiSync room.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "roomCode": {
+          "type": "string",
+          "maxLength": 6,
+          "minLength": 6,
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 1
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "roomCode", "displayName", "joinedAt"]
+    },
+    "CanvasSnapshot": {
+      "title": "CanvasSnapshot",
+      "description": "Saved vector canvas artwork snapshot created by a couple in a room.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "minLength": 1
+        },
+        "roomCode": {
+          "type": "string",
+          "maxLength": 6,
+          "minLength": 6,
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 80,
+          "minLength": 1
+        },
+        "savedByUid": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "savedByName": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 1
+        },
+        "participantUids": {
+          "type": "array",
+          "description": "Bounded list (max 2) of room partner UIDs authorized to list/view this snapshot."
+        },
+        "strokeCount": {
+          "type": "integer"
+        },
+        "strokes": {
+          "type": "array",
+          "description": "Native list of normalized vector stroke maps (max 200)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "roomCode",
+        "title",
+        "savedByUid",
+        "savedByName",
+        "participantUids",
+        "strokeCount",
+        "strokes",
+        "createdAt"
+      ]
+    },
+    "GameHistoryRecord": {
+      "title": "GameHistoryRecord",
+      "description": "Completed 5-question AI Daily Couple Game round and match score saved for a room.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "minLength": 1
+        },
+        "roomCode": {
+          "type": "string",
+          "maxLength": 6,
+          "minLength": 6,
+          "pattern": "^[A-Z0-9]{6}$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["know_me", "would_you_rather"],
+          "maxLength": 24
+        },
+        "moodTag": {
+          "type": "string",
+          "maxLength": 40,
+          "minLength": 1
+        },
+        "savedByUid": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 1
+        },
+        "savedByName": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 1
+        },
+        "participantUids": {
+          "type": "array",
+          "description": "Bounded list (max 2) of room partner UIDs authorized to list/view this game record."
+        },
+        "partnerNames": {
+          "type": "array",
+          "description": "Bounded list (max 2) of participating partner names."
+        },
+        "matchScore": {
+          "type": "integer"
+        },
+        "totalQuestions": {
+          "type": "integer"
+        },
+        "rounds": {
+          "type": "array",
+          "description": "Native list of 1 to 5 question outcome maps."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "roomCode",
+        "mode",
+        "moodTag",
+        "savedByUid",
+        "savedByName",
+        "participantUids",
+        "partnerNames",
+        "matchScore",
+        "totalQuestions",
+        "rounds",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/rooms/{roomCode}": {
+      "schema": { "$ref": "#/entities/RoomArchive" },
+      "description": "Room metadata and persistent archive header keyed by 6-character invite code."
+    },
+    "/rooms/{roomCode}/members/{memberId}": {
+      "schema": { "$ref": "#/entities/RoomMember" },
+      "description": "Authenticated partner membership documents inside a room."
+    },
+    "/rooms/{roomCode}/snapshots/{snapshotId}": {
+      "schema": { "$ref": "#/entities/CanvasSnapshot" },
+      "description": "Saved vector drawing canvas snapshots for a specific room."
+    },
+    "/rooms/{roomCode}/gameHistory/{gameId}": {
+      "schema": { "$ref": "#/entities/GameHistoryRecord" },
+      "description": "Completed AI Daily Couple Game rounds and scores for a specific room."
+    }
+  }
+}

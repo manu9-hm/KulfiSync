@@ -1,0 +1,403 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidRoomCode(code) {
+      return code is string && code.size() == 6 && code.matches('^[A-Z0-9]{6}$');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isBoundedUidList(uids) {
+      return uids is list &&
+        uids.size() >= 1 &&
+        uids.size() <= 2 &&
+        uids[0] is string &&
+        uids[0].size() >= 1 &&
+        uids[0].size() <= 128 &&
+        (uids.size() == 1 || (uids[1] is string && uids[1].size() >= 1 && uids[1].size() <= 128));
+    }
+
+    function isBoundedNameList(names) {
+      return names is list &&
+        names.size() >= 1 &&
+        names.size() <= 2 &&
+        names[0] is string &&
+        names[0].size() >= 1 &&
+        names[0].size() <= 32 &&
+        (names.size() == 1 || (names[1] is string && names[1].size() >= 1 && names[1].size() <= 32));
+    }
+
+    function isRoomParticipant(roomCode) {
+      return isVerified() &&
+        exists(/databases/$(database)/documents/rooms/$(roomCode)) &&
+        request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomCode)).data.participantUids;
+    }
+
+    function isValidRoomArchive(data, roomCode) {
+      return data.keys().hasAll([
+          'code',
+          'createdByUid',
+          'participantUids',
+          'partnerNames',
+          'partnerCount',
+          'lastCraving',
+          'lastSoundtrack',
+          'lastEnergy',
+          'snapshotCount',
+          'gameCount',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'code',
+          'createdByUid',
+          'participantUids',
+          'partnerNames',
+          'partnerCount',
+          'lastCraving',
+          'lastSoundtrack',
+          'lastEnergy',
+          'snapshotCount',
+          'gameCount',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.code is string &&
+        data.code == roomCode &&
+        isValidRoomCode(data.code) &&
+        data.createdByUid is string &&
+        data.createdByUid.size() >= 1 &&
+        data.createdByUid.size() <= 128 &&
+        isBoundedUidList(data.participantUids) &&
+        isBoundedNameList(data.partnerNames) &&
+        data.partnerCount is int &&
+        data.partnerCount >= 1 &&
+        data.partnerCount <= 2 &&
+        data.partnerCount == data.participantUids.size() &&
+        data.lastCraving is string &&
+        data.lastCraving.size() >= 1 &&
+        data.lastCraving.size() <= 40 &&
+        data.lastSoundtrack is string &&
+        data.lastSoundtrack.size() >= 1 &&
+        data.lastSoundtrack.size() <= 40 &&
+        data.lastEnergy is int &&
+        data.lastEnergy >= 1 &&
+        data.lastEnergy <= 5 &&
+        data.snapshotCount is int &&
+        data.snapshotCount >= 0 &&
+        data.snapshotCount <= 1000 &&
+        data.gameCount is int &&
+        data.gameCount >= 0 &&
+        data.gameCount <= 1000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidMember(data, roomCode, memberId) {
+      return data.keys().hasAll(['uid', 'roomCode', 'displayName', 'joinedAt']) &&
+        data.keys().hasOnly(['uid', 'roomCode', 'displayName', 'joinedAt']) &&
+        data.uid is string &&
+        data.uid == memberId &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.roomCode is string &&
+        data.roomCode == roomCode &&
+        isValidRoomCode(data.roomCode) &&
+        data.displayName is string &&
+        data.displayName.size() >= 1 &&
+        data.displayName.size() <= 32 &&
+        data.joinedAt is timestamp;
+    }
+
+    function isValidSnapshot(data, roomCode, snapshotId) {
+      return data.keys().hasAll([
+          'id',
+          'roomCode',
+          'title',
+          'savedByUid',
+          'savedByName',
+          'participantUids',
+          'strokeCount',
+          'strokes',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'roomCode',
+          'title',
+          'savedByUid',
+          'savedByName',
+          'participantUids',
+          'strokeCount',
+          'strokes',
+          'createdAt'
+        ]) &&
+        data.id is string &&
+        data.id == snapshotId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 64 &&
+        data.roomCode is string &&
+        data.roomCode == roomCode &&
+        isValidRoomCode(data.roomCode) &&
+        data.title is string &&
+        data.title.size() >= 1 &&
+        data.title.size() <= 80 &&
+        data.savedByUid is string &&
+        data.savedByUid.size() >= 1 &&
+        data.savedByUid.size() <= 128 &&
+        data.savedByName is string &&
+        data.savedByName.size() >= 1 &&
+        data.savedByName.size() <= 32 &&
+        isBoundedUidList(data.participantUids) &&
+        data.strokeCount is int &&
+        data.strokeCount >= 1 &&
+        data.strokeCount <= 200 &&
+        data.strokes is list &&
+        data.strokes.size() >= 1 &&
+        data.strokes.size() <= 200 &&
+        data.strokes[0] is map &&
+        data.strokes[0].color is string &&
+        data.strokes[0].color.size() <= 24 &&
+        data.strokes[0].size is number &&
+        data.strokes[0].points is list &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidGameHistory(data, roomCode, gameId) {
+      return data.keys().hasAll([
+          'id',
+          'roomCode',
+          'mode',
+          'moodTag',
+          'savedByUid',
+          'savedByName',
+          'participantUids',
+          'partnerNames',
+          'matchScore',
+          'totalQuestions',
+          'rounds',
+          'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'roomCode',
+          'mode',
+          'moodTag',
+          'savedByUid',
+          'savedByName',
+          'participantUids',
+          'partnerNames',
+          'matchScore',
+          'totalQuestions',
+          'rounds',
+          'createdAt'
+        ]) &&
+        data.id is string &&
+        data.id == gameId &&
+        data.id.size() >= 1 &&
+        data.id.size() <= 64 &&
+        data.roomCode is string &&
+        data.roomCode == roomCode &&
+        isValidRoomCode(data.roomCode) &&
+        data.mode in ['know_me', 'would_you_rather'] &&
+        data.moodTag is string &&
+        data.moodTag.size() >= 1 &&
+        data.moodTag.size() <= 40 &&
+        data.savedByUid is string &&
+        data.savedByUid.size() >= 1 &&
+        data.savedByUid.size() <= 128 &&
+        data.savedByName is string &&
+        data.savedByName.size() >= 1 &&
+        data.savedByName.size() <= 32 &&
+        isBoundedUidList(data.participantUids) &&
+        isBoundedNameList(data.partnerNames) &&
+        data.matchScore is int &&
+        data.matchScore >= 0 &&
+        data.matchScore <= 5 &&
+        data.totalQuestions is int &&
+        data.totalQuestions >= 1 &&
+        data.totalQuestions <= 5 &&
+        data.rounds is list &&
+        data.rounds.size() >= 1 &&
+        data.rounds.size() <= 5 &&
+        data.rounds[0] is map &&
+        data.rounds[0].prompt is string &&
+        data.rounds[0].matched is bool &&
+        data.createdAt is timestamp;
+    }
+
+    match /rooms/{roomCode} {
+      allow get: if isVerified() && isValidRoomCode(roomCode) && (
+        request.auth.uid in existing().participantUids ||
+        existing().participantUids.size() < 2
+      );
+
+      allow list: if isVerified() && request.auth.uid in resource.data.participantUids;
+
+      allow create: if isVerified() &&
+        isValidRoomCode(roomCode) &&
+        isValidRoomArchive(incoming(), roomCode) &&
+        incoming().createdByUid == request.auth.uid &&
+        incoming().participantUids.size() == 1 &&
+        incoming().participantUids[0] == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/rooms/$(roomCode)/members/$(request.auth.uid));
+
+      allow update: if isVerified() &&
+        isValidRoomCode(roomCode) &&
+        isValidRoomArchive(incoming(), roomCode) &&
+        incoming().code == existing().code &&
+        incoming().createdByUid == existing().createdByUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          (
+            !(request.auth.uid in existing().participantUids) &&
+            existing().participantUids.size() == 1 &&
+            incoming().participantUids.size() == 2 &&
+            existing().participantUids[0] in incoming().participantUids &&
+            request.auth.uid in incoming().participantUids &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['participantUids', 'partnerNames', 'partnerCount', 'updatedAt']) &&
+            existsAfter(/databases/$(database)/documents/rooms/$(roomCode)/members/$(request.auth.uid))
+          ) ||
+          (
+            request.auth.uid in existing().participantUids &&
+            incoming().participantUids == existing().participantUids &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'partnerNames',
+              'lastCraving',
+              'lastSoundtrack',
+              'lastEnergy',
+              'snapshotCount',
+              'gameCount',
+              'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if false;
+
+      match /members/{memberId} {
+        allow get: if isVerified() && isValidRoomCode(roomCode) && isValidId(memberId) && (
+          memberId == request.auth.uid || isRoomParticipant(roomCode)
+        );
+        allow list: if false;
+
+        allow create: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(memberId) &&
+          memberId == request.auth.uid &&
+          isValidMember(incoming(), roomCode, memberId) &&
+          incoming().uid == request.auth.uid &&
+          incoming().joinedAt == request.time &&
+          existsAfter(/databases/$(database)/documents/rooms/$(roomCode));
+
+        allow update: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(memberId) &&
+          memberId == request.auth.uid &&
+          isValidMember(incoming(), roomCode, memberId) &&
+          incoming().uid == existing().uid &&
+          incoming().roomCode == existing().roomCode &&
+          incoming().joinedAt == existing().joinedAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName']);
+
+        allow delete: if false;
+      }
+
+      match /snapshots/{snapshotId} {
+        allow get: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(snapshotId) &&
+          isRoomParticipant(roomCode);
+
+        allow list: if isVerified() && request.auth.uid in resource.data.participantUids;
+
+        allow create: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(snapshotId) &&
+          isValidSnapshot(incoming(), roomCode, snapshotId) &&
+          incoming().savedByUid == request.auth.uid &&
+          request.auth.uid in incoming().participantUids &&
+          incoming().createdAt == request.time &&
+          isRoomParticipant(roomCode);
+
+        allow update: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(snapshotId) &&
+          isValidSnapshot(incoming(), roomCode, snapshotId) &&
+          isRoomParticipant(roomCode) &&
+          incoming().id == existing().id &&
+          incoming().roomCode == existing().roomCode &&
+          incoming().savedByUid == existing().savedByUid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['participantUids', 'title']);
+
+        allow delete: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(snapshotId) &&
+          isRoomParticipant(roomCode) &&
+          existing().savedByUid == request.auth.uid;
+      }
+
+      match /gameHistory/{gameId} {
+        allow get: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(gameId) &&
+          isRoomParticipant(roomCode);
+
+        allow list: if isVerified() && request.auth.uid in resource.data.participantUids;
+
+        allow create: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(gameId) &&
+          isValidGameHistory(incoming(), roomCode, gameId) &&
+          incoming().savedByUid == request.auth.uid &&
+          request.auth.uid in incoming().participantUids &&
+          incoming().createdAt == request.time &&
+          isRoomParticipant(roomCode);
+
+        allow update: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(gameId) &&
+          isValidGameHistory(incoming(), roomCode, gameId) &&
+          isRoomParticipant(roomCode) &&
+          incoming().id == existing().id &&
+          incoming().roomCode == existing().roomCode &&
+          incoming().savedByUid == existing().savedByUid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['participantUids']);
+
+        allow delete: if isVerified() &&
+          isValidRoomCode(roomCode) &&
+          isValidId(gameId) &&
+          isRoomParticipant(roomCode) &&
+          existing().savedByUid == request.auth.uid;
+      }
+    }
+  }
+}
